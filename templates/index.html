@@ -3,45 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload CSV File</title>
+    <title>Upload and Process CSV</title>
+    <link rel="stylesheet" href="style.css">
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            background: url('https://www.ontime360.com/blog/image.axd?picture=/2020/courier-route-optimization.jpg') no-repeat center center/cover;
+            padding: 20px;
         }
         .container {
-            width: 50%;
-            margin: auto;
-            padding: 20px;
-            border: 2px solid #ccc;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
             border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
         }
-        input {
-            margin: 10px;
+        input, button {
+            margin: 10px 0;
+            padding: 12px;
+            width: 90%;
+            border-radius: 5px;
+            border: 1px solid #ccc;
         }
         .btn {
-            padding: 10px 20px;
-            background-color: #28a745;
+            background: #28a745;
             color: white;
             border: none;
             cursor: pointer;
-            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
         }
         .btn:hover {
-            background-color: #218838;
+            background: #218838;
+        }
+        .spinner {
+            display: none;
+            margin: 20px auto;
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #28a745;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .output-container {
+            display: none;
+            width: 90%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+        }
+        .table-container {
+            width: 100%;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #28a745;
+            color: white;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Upload CSV File</h2>
-        <input type="file" id="fileInput">
+        <h1>Smart Route Optimizer</h1>
+        <input type="file" id="fileInput" accept=".csv">
         <button class="btn" onclick="uploadFile()">Upload & Process</button>
+        <div id="spinner" class="spinner"></div>
         <p id="message"></p>
-        <a id="downloadLink" style="display: none;" class="btn">Download Processed CSV</a>
     </div>
-
+    
+    <div class="output-container" id="outputContainer">
+        <a id="downloadLink" class="btn" style="display: none;">Download Processed CSV</a>
+        <div class="table-container">
+            <table id="csvTable"></table>
+        </div>
+    </div>
+    
     <script>
         function uploadFile() {
             let fileInput = document.getElementById("fileInput").files[0];
@@ -53,19 +114,58 @@
             let formData = new FormData();
             formData.append("file", fileInput);
 
+            document.getElementById("spinner").style.display = "block";
+            document.getElementById("message").innerText = "Processing...";
+            document.getElementById("outputContainer").style.display = "none";
+            
             fetch("/upload", {
                 method: "POST",
                 body: formData
             })
-            .then(response => response.blob())
-            .then(blob => {
-                let link = document.getElementById("downloadLink");
-                link.href = URL.createObjectURL(blob);
-                link.download = "optimized_shipments.csv";
-                link.style.display = "inline-block";
+            .then(response => response.text())
+            .then(csvText => {
+                document.getElementById("spinner").style.display = "none";
                 document.getElementById("message").innerText = "File processed successfully!";
+                document.getElementById("downloadLink").href = URL.createObjectURL(new Blob([csvText], { type: 'text/csv' }));
+                document.getElementById("downloadLink").download = "processed_file.csv";
+                document.getElementById("downloadLink").style.display = "inline-block";
+                document.getElementById("outputContainer").style.display = "block";
+                displayCSV(csvText);
             })
-            .catch(error => console.error("Error:", error));
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("spinner").style.display = "none";
+                document.getElementById("message").innerText = "Upload failed!";
+            });
+        }
+
+        function displayCSV(csvText) {
+            let rows = csvText.split("\n").map(row => row.split(","));
+            let table = document.getElementById("csvTable");
+            table.innerHTML = "";
+            if (rows.length === 0) return;
+
+            let thead = document.createElement("thead");
+            let headerRow = document.createElement("tr");
+            rows[0].forEach(header => {
+                let th = document.createElement("th");
+                th.innerText = header;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            let tbody = document.createElement("tbody");
+            rows.slice(1).forEach(row => {
+                let tr = document.createElement("tr");
+                row.forEach(cell => {
+                    let td = document.createElement("td");
+                    td.innerText = cell;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
         }
     </script>
 </body>
