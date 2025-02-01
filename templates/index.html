@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload CSV File</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        .container {
+            width: 50%;
+            margin: auto;
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+        }
+        input {
+            margin: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Upload CSV File</h2>
+        <input type="file" id="fileInput">
+        <button class="btn" onclick="uploadFile()">Upload & Process</button>
+        <p id="message"></p>
+        <a id="downloadLink" style="display: none;" class="btn">Download Processed CSV</a>
+    </div>
+
+    <script>
+        function uploadFile() {
+            let fileInput = document.getElementById("fileInput").files[0];
+            if (!fileInput) {
+                alert("Please select a file.");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("file", fileInput);
+
+            fetch("/upload", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                let link = document.getElementById("downloadLink");
+                link.href = URL.createObjectURL(blob);
+                link.download = "optimized_shipments.csv";
+                link.style.display = "inline-block";
+                document.getElementById("message").innerText = "File processed successfully!";
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
+</body>
+</html>
